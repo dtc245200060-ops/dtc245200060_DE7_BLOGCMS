@@ -1,0 +1,87 @@
+<%- include('partials/header') %>
+
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="row align-items-center">
+    <div class="col-lg-7">
+      <h1 class="display-5 fw-bold mb-3">
+        <i class="bi bi-journal-code"></i> Hệ thống Blog / CMS
+      </h1>
+      <p class="lead mb-2" style="color: var(--text-secondary);">
+        Đồ án môn Triển khai và Quản trị Hệ thống Phần mềm
+      </p>
+      <p style="color: var(--text-secondary);">
+        <i class="bi bi-person-badge"></i> <strong>Hoàng Duy Mạnh</strong> - DTC245200060<br>
+        <i class="bi bi-mortarboard"></i> Lớp CNTT K23B - Trường ĐH CNTT&TT (ICTU)
+      </p>
+      <div class="mt-3">
+        <a href="/posts/create" class="btn btn-primary me-2"><i class="bi bi-plus-lg"></i> Viết bài mới</a>
+        <a href="/posts" class="btn btn-outline-primary"><i class="bi bi-list"></i> Xem tất cả</a>
+      </div>
+    </div>
+    <div class="col-lg-5 mt-3 mt-lg-0">
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="card stat-card">
+            <div class="stat-number"><%= posts.length %></div>
+            <div class="stat-label">Bài viết</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card stat-card">
+            <div class="stat-number"><%= categories.length %></div>
+            <div class="stat-label">Danh mục</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Latest Posts -->
+<div class="page-header">
+  <h2><i class="bi bi-clock-history"></i> Bài viết mới nhất</h2>
+  <a href="/posts" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-right"></i> Xem tất cả</a>
+</div>
+
+<% if (posts.length === 0) { %>
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block"></i>
+    <h5>Chưa có bài viết nào</h5>
+    <p>Hãy tạo bài viết đầu tiên!</p>
+    <a href="/posts/create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Viết bài mới</a>
+  </div>
+<% } else { %>
+  <div class="row g-4">
+    <% posts.forEach(function(post) { %>
+      <div class="col-md-6 col-lg-4">
+        <div class="card post-card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <% if (post.category_name) { %>
+                <span class="badge badge-published"><%= post.category_name %></span>
+              <% } else { %>
+                <span class="badge badge-draft">Chưa phân loại</span>
+              <% } %>
+              <span class="badge badge-<%= post.status === 'published' ? 'published' : 'draft' %>">
+                <%= post.status === 'published' ? 'Đã xuất bản' : 'Bản nháp' %>
+              </span>
+            </div>
+            <h5 class="post-title">
+              <a href="/posts/<%= post.id %>"><%= post.title %></a>
+            </h5>
+            <p class="post-excerpt">
+              <%= post.content ? post.content.substring(0, 120) + '...' : '' %>
+            </p>
+            <div class="post-meta">
+              <span><i class="bi bi-person"></i> <%= post.author_name || 'Ẩn danh' %></span>
+              <span><i class="bi bi-calendar"></i> <%= new Date(post.created_at).toLocaleDateString('vi-VN') %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>

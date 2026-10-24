@@ -1,0 +1,69 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-file-earmark-text"></i> Danh sách bài viết</h2>
+  <a href="/posts/create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tạo bài viết</a>
+</div>
+
+<% if (posts.length === 0) { %>
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block"></i>
+    <h5>Chưa có bài viết nào</h5>
+    <a href="/posts/create" class="btn btn-primary mt-2"><i class="bi bi-plus-lg"></i> Viết bài mới</a>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tiêu đề</th>
+            <th>Danh mục</th>
+            <th>Tác giả</th>
+            <th>Trạng thái</th>
+            <th>Ngày tạo</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% posts.forEach(function(post, index) { %>
+            <tr>
+              <td><%= index + 1 %></td>
+              <td>
+                <a href="/posts/<%= post.id %>" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">
+                  <%= post.title %>
+                </a>
+              </td>
+              <td>
+                <% if (post.category_name) { %>
+                  <span class="badge badge-published"><%= post.category_name %></span>
+                <% } else { %>
+                  <span class="badge badge-draft">-</span>
+                <% } %>
+              </td>
+              <td><%= post.author_name || 'Ẩn danh' %></td>
+              <td>
+                <span class="badge badge-<%= post.status === 'published' ? 'published' : 'draft' %>">
+                  <%= post.status === 'published' ? 'Đã xuất bản' : 'Bản nháp' %>
+                </span>
+              </td>
+              <td><%= new Date(post.created_at).toLocaleDateString('vi-VN') %></td>
+              <td>
+                <div class="action-buttons">
+                  <a href="/posts/<%= post.id %>" class="btn btn-sm btn-outline-primary" title="Xem"><i class="bi bi-eye"></i></a>
+                  <a href="/posts/edit/<%= post.id %>" class="btn btn-sm btn-warning" title="Sửa"><i class="bi bi-pencil"></i></a>
+                  <form action="/posts/delete/<%= post.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Xác nhận xóa bài viết này?')">
+                    <button type="submit" class="btn btn-sm btn-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

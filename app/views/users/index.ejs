@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-people"></i> Quản lý người dùng</h2>
+  <a href="/users/create" class="btn btn-primary"><i class="bi bi-person-plus"></i> Thêm người dùng</a>
+</div>
+
+<% if (users.length === 0) { %>
+  <div class="empty-state">
+    <i class="bi bi-people d-block"></i>
+    <h5>Chưa có người dùng nào</h5>
+    <a href="/users/create" class="btn btn-primary mt-2"><i class="bi bi-person-plus"></i> Thêm người dùng</a>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Họ tên</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Vai trò</th>
+            <th>Số bài viết</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(function(user, index) { %>
+            <tr>
+              <td><%= index + 1 %></td>
+              <td style="font-weight: 500;"><%= user.full_name %></td>
+              <td><code style="color: var(--accent);"><%= user.username %></code></td>
+              <td><%= user.email %></td>
+              <td>
+                <span class="badge badge-<%= user.role %>"><%= user.role %></span>
+              </td>
+              <td><span class="badge badge-published"><%= user.post_count %></span></td>
+              <td>
+                <div class="action-buttons">
+                  <a href="/users/edit/<%= user.id %>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                  <form action="/users/delete/<%= user.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Xác nhận xóa người dùng này?')">
+                    <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

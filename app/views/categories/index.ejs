@@ -1,0 +1,38 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-folder"></i> Quản lý danh mục</h2>
+  <a href="/categories/create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tạo danh mục</a>
+</div>
+
+<% if (categories.length === 0) { %>
+  <div class="empty-state">
+    <i class="bi bi-folder-x d-block"></i>
+    <h5>Chưa có danh mục nào</h5>
+    <a href="/categories/create" class="btn btn-primary mt-2"><i class="bi bi-plus-lg"></i> Tạo danh mục mới</a>
+  </div>
+<% } else { %>
+  <div class="row g-4">
+    <% categories.forEach(function(cat) { %>
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <h5 class="mb-1" style="font-weight: 600;"><i class="bi bi-folder2-open" style="color: var(--primary);"></i> <%= cat.name %></h5>
+              <span class="badge badge-published"><%= cat.post_count %> bài</span>
+            </div>
+            <p class="text-secondary mt-2 mb-3" style="font-size: 0.9rem;"><%= cat.description || 'Không có mô tả' %></p>
+            <div class="action-buttons">
+              <a href="/categories/edit/<%= cat.id %>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Sửa</a>
+              <form action="/categories/delete/<%= cat.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Xác nhận xóa danh mục này?')">
+                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Xóa</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

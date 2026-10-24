@@ -1,0 +1,43 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-pencil-square"></i> Sửa người dùng</h2>
+  <a href="/users" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> Quay lại</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form action="/users/edit/<%= user.id %>" method="POST">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="full_name" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="full_name" name="full_name" value="<%= user.full_name %>" required>
+        </div>
+        <div class="col-md-6">
+          <label for="username" class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="username" name="username" value="<%= user.username %>" required>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+          <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
+        </div>
+        <div class="col-md-6">
+          <label for="role" class="form-label">Vai trò</label>
+          <select class="form-select" id="role" name="role">
+            <option value="author" <%= user.role === 'author' ? 'selected' : '' %>>Tác giả (Author)</option>
+            <option value="editor" <%= user.role === 'editor' ? 'selected' : '' %>>Biên tập (Editor)</option>
+            <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Quản trị (Admin)</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Cập nhật</button>
+        <a href="/users" class="btn btn-outline-primary">Hủy</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

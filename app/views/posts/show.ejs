@@ -1,0 +1,35 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><%= post.title %></h2>
+  <div class="action-buttons">
+    <a href="/posts/edit/<%= post.id %>" class="btn btn-warning btn-sm"><i class="bi bi-pencil"></i> Sửa</a>
+    <a href="/posts" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left"></i> Quay lại</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="post-detail-header">
+      <h1><%= post.title %></h1>
+      <div class="post-meta">
+        <span><i class="bi bi-person"></i> <%= post.author_name || 'Ẩn danh' %></span>
+        <% if (post.author_email) { %>
+          <span><i class="bi bi-envelope"></i> <%= post.author_email %></span>
+        <% } %>
+        <% if (post.category_name) { %>
+          <span><i class="bi bi-folder"></i> <%= post.category_name %></span>
+        <% } %>
+        <span><i class="bi bi-calendar"></i> <%= new Date(post.created_at).toLocaleDateString('vi-VN') %></span>
+        <span class="badge badge-<%= post.status === 'published' ? 'published' : 'draft' %>">
+          <%= post.status === 'published' ? 'Đã xuất bản' : 'Bản nháp' %>
+        </span>
+      </div>
+    </div>
+    <div class="content-body">
+      <%- post.content.replace(/\n/g, '<br>') %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

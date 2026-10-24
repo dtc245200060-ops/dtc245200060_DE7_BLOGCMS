@@ -1,0 +1,283 @@
+services:
+  # ============================================================
+  # 1. BLOG CMS APPLICATION (Node.js Express)
+  # ============================================================
+  blog-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: blog-app
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - APP_PORT=${APP_PORT}
+      - SESSION_SECRET=${SESSION_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - frontend_net
+      - backend_net
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================
+  # 2. MYSQL 8.0 DATABASE
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - backend_net
+    security_opt:
+      - no-new-privileges:true
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ============================================================
+  # 3. PHPMYADMIN
+  # ============================================================
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=${PMA_HOST}
+      - PMA_PORT=${PMA_PORT}
+      - PMA_ARBITRARY=1
+    ports:
+      - "8088:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - frontend_net # cần thiết để nginx proxy /phpmyadmin/ hoạt động
+      - backend_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 4. NGINX REVERSE PROXY (SSL + Security Headers)
+  # ============================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - blog-app
+    networks:
+      - frontend_net
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 5. PROMETHEUS (Monitoring)
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 6. GRAFANA (Visualization)
+  # ============================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 7. cADVISOR (Container Metrics)
+  # Trên Docker Desktop Windows, các mount /sys và /var/run
+  # gây crash. Dùng image v0.47.2 với chỉ những volume
+  # tương thích WSL2 (rootfs + docker data dir).
+  # ============================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    command:
+      - '--housekeeping_interval=30s'
+      - '--docker_only=true'
+      - '--disable_metrics=disk,diskIO,network,tcp,udp,percpu,sched,process'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring_net
+
+  # ============================================================
+  # 8. NGINX PROMETHEUS EXPORTER
+  # Đọc metrics qua http://nginx:80/nginx_status (HTTP, không redirect)
+  # Port 80 của nginx đã có location /nginx_status riêng trước redirect.
+  # ============================================================
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.11
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - '--nginx.scrape-uri=http://nginx:80/nginx_status'
+    depends_on:
+      - nginx
+    networks:
+      - frontend_net
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 9. MYSQLD EXPORTER
+  # ============================================================
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.0
+    container_name: mysqld-exporter
+    restart: unless-stopped
+    volumes:
+      - ./mysql/.my.cnf:/.my.cnf:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend_net
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 10. LOKI (Log Aggregation)
+  # ============================================================
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================
+  # 11. PROMTAIL (Log Collector)
+  # ============================================================
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx_logs:/var/log/nginx:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+
+# ============================================================
+# NETWORKS (Cô lập mạng - Security Hardening)
+# ============================================================
+networks:
+  # Mạng frontend: Nginx <-> Blog App
+  frontend_net:
+    driver: bridge
+    name: frontend_net
+
+  # Mạng backend: Blog App <-> MySQL, phpMyAdmin (internal)
+  backend_net:
+    driver: bridge
+    name: backend_net
+    internal: true
+
+  # Mạng monitoring: Prometheus, Grafana, Loki, Promtail, Exporters
+  monitoring_net:
+    driver: bridge
+    name: monitoring_net
+
+# ============================================================
+# VOLUMES (Persist Data)
+# ============================================================
+volumes:
+  mysql_data:
+    name: blogcms_mysql_data
+  prometheus_data:
+    name: blogcms_prometheus_data
+  grafana_data:
+    name: blogcms_grafana_data
+  loki_data:
+    name: blogcms_loki_data
+  nginx_logs:
+    name: blogcms_nginx_logs
