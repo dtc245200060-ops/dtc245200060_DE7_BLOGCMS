@@ -1,0 +1,16 @@
+# ============================================================
+# Grafana Dashboard Provisioning
+# ============================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Blog CMS Dashboards'
+    orgId: 1
+    folder: 'Blog CMS'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
